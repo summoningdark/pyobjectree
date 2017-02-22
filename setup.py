@@ -14,7 +14,7 @@ setup(name='PyObjectTree',
       author='Jennifer Holt',
       author_email='jholt1978@gmail.com',
       license='MIT',
-      packages=['ObjectTree'],
+      packages=['PyObjectTree'],
       install_requires=[
           'pyqtgraph',
       ],
