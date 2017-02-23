@@ -1,5 +1,5 @@
 from pyqtgraph import QtCore, QtGui
-from .Data import Node
+from .Data import Node, ObjectNode
 
 
 class ObjectTreeModel(QtCore.QAbstractItemModel):
@@ -8,9 +8,12 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
 
     """INPUTS: Node, QObject"""
 
-    def __init__(self, root, parent=None):
+    def __init__(self, root=None, parent=None):
         super(ObjectTreeModel, self).__init__(parent)
-        self._rootNode = root
+        if root is not None:
+            self._rootNode = root
+        else:
+            self._rootNode = Node("root", columns=2)
 
     """INPUTS: QModelIndex"""
     """OUTPUT: int"""
@@ -157,3 +160,24 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
         self.endRemoveRows()
 
         return success
+
+    def addObject(self, position, obj):
+
+        parentNode = self._rootNode
+        parent = self.createIndex(0, 0, self._rootNode)
+
+        self.beginInsertRows(parent, position, position)
+
+        childNode = ObjectNode(obj)
+        success = parentNode.insertChild(position, childNode)
+
+        self.endInsertRows()
+
+        return success
+
+    def removeObject(self, index):
+        if index.isValid():
+            parent = index.parent()
+            parentNode = self.getNode(parent)
+            if parentNode is self._rootNode:                  # can only delete items with root as parent
+                self.removeRows(index.row(), 1, parent)
