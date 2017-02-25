@@ -1,3 +1,3 @@
-from .Data import Node, ObjectNode
+from .Data import Node, ObjectNode, PropertyNode
 from .Models import ObjectTreeModel
 

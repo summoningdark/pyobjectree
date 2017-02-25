@@ -47,13 +47,8 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
 
         node = index.internalPointer()
 
-        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
-            return node.data(index.column())
+        return node.data(index.column(), role)
 
-        if role == QtCore.Qt.DecorationRole:
-            if index.column() == 0:
-                resource = node.resource()
-                return QtGui.QIcon(QtGui.QPixmap(resource))
 
     """INPUTS: QModelIndex, QVariant, int (flag)"""
 
@@ -119,17 +114,6 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
         else:
             return QtCore.QModelIndex()
 
-    """CUSTOM"""
-    """INPUTS: QModelIndex"""
-
-    def getNode(self, index):
-        if index.isValid():
-            node = index.internalPointer()
-            if node:
-                return node
-
-        return self._rootNode
-
     """INPUTS: int, int, QModelIndex"""
 
     def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
@@ -161,14 +145,43 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
 
         return success
 
-    def addObject(self, position, obj):
+    def topLevel(self):
+        """
+        returns a list of all the top-level nodes and their persistent indexes.
+        returns persistent indexes for use in remove loops
+        :return: list of dict {'item': Node, 'index': QPersistentModelIndex}
+        """
+        indexes = [self.index(i, 0, QtCore.QModelIndex()) for i in range(self._rootNode.childCount())]
+        return [{'item': self.getNode(index), 'index': QtCore.QPersistentModelIndex(index)} for index in indexes]
 
-        parentNode = self._rootNode
-        parent = self.createIndex(0, 0, self._rootNode)
+    def getNode(self, index):
+        """
+        CUSTOM
+        INPUTS: QModelIndex
+        """
+        if index.isValid():
+            node = index.internalPointer()
+            if node:
+                return node
+
+        return self._rootNode
+
+    def getObject(self, index):
+        node = self.getNode(index)
+        if node != self._rootNode:
+            return node.object
+        return None
+
+    def addObject(self, position, obj=None, parent=QtCore.QModelIndex()):
+
+        parentNode = self.getNode(parent)
 
         self.beginInsertRows(parent, position, position)
 
-        childNode = ObjectNode(obj)
+        if isinstance(obj, ObjectNode):
+            childNode = obj
+        else:
+            childNode = ObjectNode(obj)
         success = parentNode.insertChild(position, childNode)
 
         self.endInsertRows()

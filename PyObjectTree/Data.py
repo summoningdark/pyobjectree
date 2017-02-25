@@ -1,4 +1,4 @@
-from pyqtgraph import QtCore
+from pyqtgraph import QtCore, QtGui
 import ast
 
 
@@ -52,7 +52,9 @@ class Node(object):
         return True
 
     def child(self, row):
-        return self._children[row]
+        if 0 <= row < len(self._children):
+            return self._children[row]
+        return None
 
     def childCount(self):
         return len(self._children)
@@ -88,8 +90,13 @@ class Node(object):
     def __repr__(self):
         return self.log()
 
-    def data(self, column):
-        return self._data[column][0]
+    def data(self, column, role):
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            return self._data[column][0]
+
+        if role == QtCore.Qt.DecorationRole:
+            if column == 0:
+                return QtGui.QIcon(QtGui.QPixmap(self.resource()))
 
     def setData(self, column, value):
         if column < len(self._data):
@@ -118,28 +125,37 @@ class PropertyNode(Node):
         self._data[0][1] = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable     # property names are not editable
         self._data.append([None, flags])                                            # property may be editable
 
-    def data(self, column):
-        if column == 1:                     # second column is for the object property's value
-            return str(getattr(self._object_parent._object, self.name))
-        else:
-            return Node.data(self, column)
+    @property
+    def object_parent(self):
+        return self._object_parent
+
+    def data(self, column, role):
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            if column == 1:                     # second column is for the object property's value
+                return str(getattr(self._object_parent.object, self.name))
+            else:
+                return Node.data(self, column, role)
+        return Node.data(self, column, role)
 
     def setData(self, column, value):
         if column == 1:
             if self._data[1][1] & QtCore.Qt.ItemIsEditable:
-                if isinstance(value, QtCore.QVariant):              # convert QVarient's to python objects
-                    str_val = str(value.toPyObject())
-                else:
-                    str_val = str(value)
+                str_val = str(value)
                 try:
                     new_val = ast.literal_eval(str_val)             # try evaluating the string as a constant
                 except ValueError:
                     new_val = str_val                               # if that fails, just use the string
-                setattr(self._object_parent._object, self.name, new_val)
+                setattr(self._object_parent.object, self.name, new_val)
 
 
 class ObjectNode(Node):
-    def __init__(self, obj, parent=None):
+    def __init__(self, obj, parent=None, pNode = PropertyNode):
+        """
+        node to represent a python object in the tree
+        :param obj: the python object instance to represent
+        :param parent: parent Node
+        :param pNode: otpional PropertyNode class to use
+        """
 
         self._object = obj
         self._object_hasname = False
@@ -170,7 +186,7 @@ class ObjectNode(Node):
                 if isinstance(attribute, property):
                     if attribute.fset is not None:
                         flags |= QtCore.Qt.ItemIsEditable
-                    self.addChild(PropertyNode(p, flags, self))
+                    self.addChild(pNode(p, flags, self))
 
     @property
     def object(self):
@@ -179,20 +195,22 @@ class ObjectNode(Node):
     def columnCount(self):
         return 2
 
-    def data(self, column):
+    def data(self, column, role):
         """
         override base method to allow using the referenced object's name property
         :param column:
         :return:
         """
-        if column == 0:
-            if self._object_hasname:
-                return self._object.name
-            else:
-                return Node.data(self, column)
-        elif column == 1:
-            return str(self._object)
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            if column == 0:
+                if self._object_hasname:
+                    return self._object.name
+                else:
+                    return Node.data(self, column, role)
+            elif column == 1:
+                return str(self._object)
 
+        return Node.data(self, column, role)
 
     def setData(self, column, value):
         """
@@ -205,7 +223,4 @@ class ObjectNode(Node):
             if not self._object_hasname:
                 return Node.setData(self, column, value)
             if self._object_writename:
-                if isinstance(value, QtCore.QVariant):
-                    self._object.name = value.toPyObject()
-                else:
-                    self._object.name = value
+                self._object.name = value
