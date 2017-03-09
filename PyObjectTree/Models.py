@@ -154,6 +154,18 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
         indexes = [self.index(i, 0, QtCore.QModelIndex()) for i in range(self._rootNode.childCount())]
         return [{'item': self.getNode(index), 'index': QtCore.QPersistentModelIndex(index)} for index in indexes]
 
+    def topItem(self, index):
+        """
+        returns the top level index corresponding to index, ie iterates up parents until root node is found
+        :param index: QModelIndex
+        :return:
+        """
+        if index.isValid():
+            while self.parent(index).isValid():
+                index = self.parent(index)
+            return index
+        return QtCore.QModelIndex()
+
     def getNode(self, index):
         """
         CUSTOM
@@ -165,6 +177,13 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
                 return node
 
         return self._rootNode
+
+    def objects(self):
+        """
+        returns a list of all the objects
+        :return: list of objects
+        """
+        return [node['item'].object for node in self.topLevel()]
 
     def getObject(self, index):
         node = self.getNode(index)
