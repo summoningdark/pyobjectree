@@ -103,7 +103,7 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
     """OUTPUT: QModelIndex"""
     """Should return a QModelIndex that corresponds to the given row, column and parent node"""
 
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=QtCore.QModelIndex()):
 
         parentNode = self.getNode(parent)
 
@@ -158,7 +158,7 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
         """
         returns the top level index corresponding to index, ie iterates up parents until root node is found
         :param index: QModelIndex
-        :return:
+        :return: QModelIndex
         """
         if index.isValid():
             while self.parent(index).isValid():
@@ -177,6 +177,34 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
                 return node
 
         return self._rootNode
+
+    def getNodeAttr(self, index, attr):
+        """
+        calls getattr(node.object, attr)
+        :param index: QModelIndex
+        :param attr: attribute name
+        :return:
+        """
+        node = self.getNode(self.topItem(index))
+        if node != self._rootNode:
+            return getattr(node.object, attr)
+        raise ValueError('index not valid')
+
+    def setNodeAttr(self, index, key, value):
+        """
+        calls setattr(node.object, key, value)
+        :param index: QModelIndex
+        :param key: attribute name
+        :param value: value
+        :return:
+        """
+        idx = self.topItem(index)
+        node = self.getNode(idx)
+        if node != self._rootNode:
+            setattr(node.object, key, value)
+            self.dataChanged.emit(idx, idx)
+            return
+        raise ValueError('index not valid')
 
     def objects(self):
         """
