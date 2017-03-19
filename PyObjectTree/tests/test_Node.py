@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import ObjectTree
+import PyObjectTree
 
 class TestNode(TestCase):
     def test_Node(self):

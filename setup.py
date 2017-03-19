@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='PyObjectTree',
-      version='0.1',
+      version='0.2',
       description='Simple tree model for python objects',
       long_description=readme(),
       url='None',

@@ -1,3 +1,5 @@
+import numbers
+import collections
 from pyqtgraph import QtCore, QtGui
 import ast
 
@@ -149,7 +151,7 @@ class PropertyNode(Node):
 
 
 class ObjectNode(Node):
-    def __init__(self, obj, parent=None, pNode = PropertyNode):
+    def __init__(self, obj, parent=None, pNode = PropertyNode, showValue=False):
         """
         node to represent a python object in the tree
         :param obj: the python object instance to represent
@@ -160,6 +162,7 @@ class ObjectNode(Node):
         self._object = obj
         self._object_hasname = False
         self._object_writename = False
+        self._showValue = showValue
         name = 'None'
 
         # check if the object has a name property
@@ -178,15 +181,38 @@ class ObjectNode(Node):
         if not self._object_writename:
             self._data[0][1] = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
+        # do special handling for some basic types
+        if isinstance(self._object, numbers.Number):
+            self._initNumber()
+        elif isinstance(self._object, collections.Sequence):
+            self._initSequence()
+        elif isinstance(self._object, collections.Set):
+            pass
+        elif isinstance(self._object, collections.Mapping):
+            pass
+        else:
+            self._initGeneric(pNode=pNode)
+
+    def _initNumber(self):
+        pass
+
+    def _initSequence(self):
+        # loop through all the elements and add nodes for them
+        for o in reversed(self._object):        # add in reversed order so element 0 is first
+            self.addChild(ObjectNode(o))
+
+    def _initGeneric(self, pNode=None):
         # loop through all the properties and add nodes for them
-        for p in dir(obj):
-            if p != 'name':
+        for p in dir(self._object):
+            if p != 'name' and p[0] != '_':
                 flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-                attribute = getattr(type(obj), p, None)
+                attribute = getattr(type(self._object), p, None)
                 if isinstance(attribute, property):
                     if attribute.fset is not None:
                         flags |= QtCore.Qt.ItemIsEditable
                     self.addChild(pNode(p, flags, self))
+                elif not hasattr(attribute, '__call__'):                        # get non-callable attributes
+                    self.addChild(ObjectNode(getattr(self._object, p, None)))
 
     @property
     def object(self):
@@ -208,7 +234,9 @@ class ObjectNode(Node):
                 else:
                     return Node.data(self, column, role)
             elif column == 1:
-                return str(self._object)
+                if self._showValue:
+                    return str(self._object)
+                return None
 
         return Node.data(self, column, role)
 
