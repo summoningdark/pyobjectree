@@ -151,7 +151,7 @@ class PropertyNode(Node):
 
 
 class ObjectNode(Node):
-    def __init__(self, obj, parent=None, pNode = PropertyNode, showValue=False):
+    def __init__(self, obj, name = None, parent=None, pNode = PropertyNode, showValue=False):
         """
         node to represent a python object in the tree
         :param obj: the python object instance to represent
@@ -163,18 +163,20 @@ class ObjectNode(Node):
         self._object_hasname = False
         self._object_writename = False
         self._showValue = showValue
-        name = 'None'
 
-        # check if the object has a name property
-        name_attribute = getattr(type(obj), 'name', None)
-        if name_attribute is not None:
-            if isinstance(name_attribute, property):
-                self._object_hasname = True
-                if name_attribute.fset is not None:
-                    self._object_writename = True
-        else:
-            # object has no inherent name
-            name = str(obj)
+        if name is None:
+            # check if the object has a name property
+            name = 'None'
+            name_attribute = getattr(type(obj), 'name', None)
+            if name_attribute is not None:
+                if isinstance(name_attribute, property):
+                    self._object_hasname = True
+                    if name_attribute.fset is not None:
+                        self._object_writename = True
+            else:
+                # object has no inherent name
+                name = str(obj)
+
         Node.__init__(self, name, columns=2, parent=parent)
         self._data[1][1] = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
@@ -184,7 +186,7 @@ class ObjectNode(Node):
         # do special handling for some basic types
         if isinstance(self._object, numbers.Number):
             self._initNumber()
-        elif isinstance(self._object, collections.Sequence):
+        elif isinstance(self._object, collections.Sequence) and not isinstance(self._object, str):
             self._initSequence()
         elif isinstance(self._object, collections.Set):
             pass
@@ -212,7 +214,7 @@ class ObjectNode(Node):
                         flags |= QtCore.Qt.ItemIsEditable
                     self.addChild(pNode(p, flags, self))
                 elif not hasattr(attribute, '__call__'):                        # get non-callable attributes
-                    self.addChild(ObjectNode(getattr(self._object, p, None)))
+                    self.addChild(ObjectNode(getattr(self._object, p, None), name=p))
 
     @property
     def object(self):
