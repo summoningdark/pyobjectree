@@ -241,3 +241,17 @@ class ObjectTreeModel(QtCore.QAbstractItemModel):
             parentNode = self.getNode(parent)
             if parentNode is self._rootNode:                  # can only delete items with root as parent
                 self.removeRows(index.row(), 1, parent)
+
+    def updateObject(self, index):
+        """
+        re-calculates all child nodes of the object node
+        :param index: QModelIndex
+        :return:
+        """
+        top = self.topItem(index)
+        if top.isValid():
+            object = self.getObject(top)
+            if object is not None:
+                self.removeObject(top)
+                self.addObject(0, obj=object)
+

@@ -151,7 +151,7 @@ class PropertyNode(Node):
 
 
 class ObjectNode(Node):
-    def __init__(self, obj, name = None, parent=None, pNode = PropertyNode, showValue=False):
+    def __init__(self, obj, name=None, parent=None, pNode = PropertyNode, showValue=False):
         """
         node to represent a python object in the tree
         :param obj: the python object instance to represent
