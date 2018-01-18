@@ -145,7 +145,7 @@ class PropertyNode(Node):
                 str_val = str(value)
                 try:
                     new_val = ast.literal_eval(str_val)             # try evaluating the string as a constant
-                except ValueError:
+                except (ValueError, SyntaxError):
                     new_val = str_val                               # if that fails, just use the string
                 setattr(self._object_parent.object, self.name, new_val)
 
